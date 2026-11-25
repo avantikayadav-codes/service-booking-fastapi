@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: avantika
+      POSTGRES_PASSWORD: docker_pass
+      POSTGRES_DB: service_booking_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avantika -d service_booking_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+
+  api:
+    build: .
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://avantika:docker_pass@db:5432/service_booking_db
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/code/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build: .
+    command: celery -A app.celery_app worker --loglevel=info --pool=solo
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://avantika:docker_pass@db:5432/service_booking_db
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+      - db
+
+volumes:
+  pgdata:
