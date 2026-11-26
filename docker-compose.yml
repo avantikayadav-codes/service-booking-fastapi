@@ -18,7 +18,8 @@ services:
 
   api:
     build: .
-    command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"    env_file: .env
+    command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"    
+    env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://avantika:docker_pass@db:5432/service_booking_db
       REDIS_URL: redis://redis:6379
